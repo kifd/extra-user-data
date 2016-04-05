@@ -1,7 +1,7 @@
 <?php
 /*
 Plugin Name: Extra User Data
-Version: 0.1
+Version: 0.11
 Plugin URI: http://drakard.com/
 Description: Adds extra (sortable) columns to the Users screen, showing the number of comments, the various custom post types authored, their registration date (and IP address) and last login date (and IP address), and their total number of logins. Links the comment and CPT totals directly to the matching editing page for that user's comments or posts.
 Author: Keith Drakard
@@ -108,17 +108,26 @@ class ExtraUserDataPlugin {
 				break;
 			
 			case 'last_login':
-				$user = get_userdata($user_id);
-				$date_format = get_option('date_format').' @ '.get_option('time_format');
-				$output = ($user->last_login) ? '<span title="'.sprintf(__('%d total logins', 'ExtraUserData'), $user->login_count).'">'.date($date_format, strtotime($user->last_login)).'</span>' : '-';
-				if (isset($user->last_login_ip)) $output.= '<br><small style="color:blue">IP: '.$user->last_login_ip.'</small>';
+				$user = get_userdata($user_id); $output = '-';
+				if ($user->last_login) {
+					$output = date(get_option('date_format'), strtotime($user->last_login))
+							. '<br><small>@ '
+							. date(get_option('time_format'), strtotime($user->last_login))
+							. '</small>';
+					if (isset($user->last_login_ip)) $output.= '<br><small style="color:blue">IP: '.$user->last_login_ip.'</small>';
+					$output = '<span title="'.sprintf(__('%d total logins', 'ExtraUserData'), $user->login_count).'">'.$output.'</span>';
+				}
 				break;
 
 			case 'registered_date':
-				$user = get_userdata($user_id);
-				$date_format = get_option('date_format').' @ '.get_option('time_format');
-				$output = date($date_format, strtotime($user->user_registered));
-				if (isset($user->registration_ip)) $output.= '<br><small style="color:blue">IP: '.$user->registration_ip.'</small>';
+				$user = get_userdata($user_id); $output = '-';
+				if ($user->user_registered) {
+					$output = date(get_option('date_format'), strtotime($user->user_registered))
+							. '<br><small>@ '
+							. date(get_option('time_format'), strtotime($user->user_registered))
+							. '</small>';
+					if (isset($user->registration_ip)) $output.= '<br><small style="color:blue">IP: '.$user->registration_ip.'</small>';
+				}
 				break;
 
 			case 'total_logins':
@@ -185,12 +194,12 @@ class ExtraUserDataPlugin {
 
 	public function resize_users_columns() {
 		echo "<style type='text/css'>
-			table.users #comments { width:6rem; }
-			table.users #custom_posts { width:12rem; }
-			table.users #last_login { width:14rem; }
-			table.users #registered_date { width:16rem; }
-			table.users #total_logins { width:8rem; }
-			table.users #user_id { width:5rem; }
+			table.users #comments { width:3rem; }
+			table.users #custom_posts { width:13rem; }
+			table.users #last_login { width:9rem; }
+			table.users #registered_date { width:9rem; }
+			table.users #total_logins { width:5rem; }
+			table.users #user_id { width:3rem; }
 
 			/* comment styling */
 			table.users .column-comments .post-com-count-pending,
