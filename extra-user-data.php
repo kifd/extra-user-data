@@ -1,7 +1,7 @@
 <?php
 /*
 Plugin Name: Extra User Data
-Version: 0.11
+Version: 0.12.2
 Plugin URI: http://drakard.com/
 Description: Adds extra (sortable) columns to the Users screen, showing the number of comments, the various custom post types authored, their registration date (and IP address) and last login date (and IP address), and their total number of logins. Links the comment and CPT totals directly to the matching editing page for that user's comments or posts.
 Author: Keith Drakard

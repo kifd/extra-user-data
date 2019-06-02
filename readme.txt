@@ -3,8 +3,8 @@ Contributors: keith_wp
 Donate Link: http://drakard.com/
 Tags: custom post types, ip, last login ip, log, login ip, more user columns, number comments, register ip, register, registration ip, signup, total comments, total logins, user columns, user data
 Requires at least: 3.8 or higher
-Tested up to: 4.5
-Stable tag: 0.11
+Tested up to: 5.2.1
+Stable tag: 0.12.2
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -41,8 +41,17 @@ Install the [Adjust Users Screen](https://wordpress.org/plugins/adjust-users-scr
 
 == Changelog ==
 
-= 0.1 =
+= 0.11 =
 * Initial release.
+
+= 0.12 =
+* Fixed the svn commit...
+
+= 0.12.1 =
+* Tested with WP 4.6.1
+
+= 0.12.2 =
+* Tested with WP 5.2.1
 
 
 
