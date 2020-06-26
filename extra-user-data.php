@@ -1,7 +1,7 @@
 <?php
 /*
 Plugin Name: Extra User Data
-Version: 0.12.2
+Version: 0.12.3
 Plugin URI: http://drakard.com/
 Description: Adds extra (sortable) columns to the Users screen, showing the number of comments, the various custom post types authored, their registration date (and IP address) and last login date (and IP address), and their total number of logins. Links the comment and CPT totals directly to the matching editing page for that user's comments or posts.
 Author: Keith Drakard
@@ -297,7 +297,7 @@ class ExtraUserDataPlugin {
 					AND p.post_status IN ('publish', 'pending', 'draft')
 					AND p.post_author = %d
 			GROUP BY p.post_type
-			", $user_id, $user_id));
+			", $user_id));
 			
 		foreach ($posts as $post) {
 			if (isset($wp_post_types[$post->post_type])) {
