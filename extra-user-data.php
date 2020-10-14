@@ -1,14 +1,15 @@
 <?php
 /*
 Plugin Name: Extra User Data
-Version: 0.12.3
-Plugin URI: http://drakard.com/
+Version: 0.13
 Description: Adds extra (sortable) columns to the Users screen, showing the number of comments, the various custom post types authored, their registration date (and IP address) and last login date (and IP address), and their total number of logins. Links the comment and CPT totals directly to the matching editing page for that user's comments or posts.
 Author: Keith Drakard
-Author URI: http://drakard.com/
+Author URI: https://drakard.com/
 */
 
 class ExtraUserDataPlugin {
+
+	private $ip_lookup_uri = 'https://tools.keycdn.com/geo?host=';
 
 	public function __construct() {
 		load_plugin_textdomain('ExtraUserData', false, plugin_dir_path(__FILE__).'/languages');
@@ -40,7 +41,7 @@ class ExtraUserDataPlugin {
 
 
 
-	/******************************************************************************************************************************************************************/
+	/***********************************************************************************************************************************************/
 
 	public function register_ip($user_id) {
 		update_user_meta($user_id, 'registration_ip', $_SERVER['REMOTE_ADDR']);
@@ -56,15 +57,15 @@ class ExtraUserDataPlugin {
 	}
 
 
-	/******************************************************************************************************************************************************************/
-
+	/***********************************************************************************************************************************************/
+	
 	public function manage_users_columns($columns) {
 		$new = array(
 			'comments'			=> '<span class="dashicons dashicons-admin-comments" title="'.__('Comments', 'ExtraUserData').'"></span><span class="screen-reader-text">'.__('Comments', 'ExtraUserData').'</span>',
 			'custom_posts'		=> __('All Assets', 'ExtraUserData'),
 			'last_login'		=> __('Last Login', 'ExtraUserData'),
 			'registered_date'	=> __('Registered', 'ExtraUserData'),
-			'total_logins'		=> __('Total Logins', 'ExtraUserData'),
+			'total_logins'		=> '<span title="'.__('Total Logins', 'ExtraUserData').'">'.__('Logins', 'ExtraUserData').'</span>',
 			'user_id'			=> __('ID', 'ExtraUserData'),
 		);
 		if (is_array($columns)) {
@@ -91,7 +92,7 @@ class ExtraUserDataPlugin {
 								 . '</span>';
 					}
 				}
-				$output = implode('', $output); $output = ('' != $output) ? '<a href="'.admin_url().'edit-comments.php?user_id='.$user_id.'">'.$output.'</a>' : '-';
+				$output = implode('', $output); $output = ('' != $output) ? '<a href="'.admin_url().'edit-comments.php?user_id='.$user_id.'">'.$output.'</a>' : '';
 				break;
 
 			case 'custom_posts':
@@ -108,25 +109,39 @@ class ExtraUserDataPlugin {
 				break;
 			
 			case 'last_login':
-				$user = get_userdata($user_id); $output = '-';
+				$user = get_userdata($user_id); $output = '-'; $ip = '';
 				if ($user->last_login) {
-					$output = date(get_option('date_format'), strtotime($user->last_login))
-							. '<br><small>@ '
-							. date(get_option('time_format'), strtotime($user->last_login))
-							. '</small>';
-					if (isset($user->last_login_ip)) $output.= '<br><small style="color:blue">IP: '.$user->last_login_ip.'</small>';
-					$output = '<span title="'.sprintf(__('%d total logins', 'ExtraUserData'), $user->login_count).'">'.$output.'</span>';
+					if (isset($user->last_login_ip)) {
+						$ip = sprintf('<br><a href="%s%s" class="ip-highlight">IP: %s</a>',
+								$this->ip_lookup_uri,
+								$user->last_login_ip,
+								$user->last_login_ip
+							);
+					}
+					$output = sprintf('<span title="%s">%s<br><small>@ %s</small>%s</span>',
+								sprintf(__('%d total logins', 'ExtraUserData'), $user->login_count),
+								date(get_option('date_format'), strtotime($user->last_login)),
+								date(get_option('time_format'), strtotime($user->last_login)),
+								$ip
+							);
 				}
 				break;
 
 			case 'registered_date':
-				$user = get_userdata($user_id); $output = '-';
+				$user = get_userdata($user_id); $output = '-'; $ip = '';
 				if ($user->user_registered) {
-					$output = date(get_option('date_format'), strtotime($user->user_registered))
-							. '<br><small>@ '
-							. date(get_option('time_format'), strtotime($user->user_registered))
-							. '</small>';
-					if (isset($user->registration_ip)) $output.= '<br><small style="color:blue">IP: '.$user->registration_ip.'</small>';
+					if (isset($user->registration_ip)) {
+						$ip = sprintf('<br><a href="%s%s" class="ip-highlight">IP: %s</a>',
+								$this->ip_lookup_uri,
+								$user->registration_ip,
+								$user->registration_ip
+							);
+					}
+					$output = sprintf('<span>%s<br><small>@ %s</small>%s</span>',
+								date(get_option('date_format'), strtotime($user->user_registered)),
+								date(get_option('time_format'), strtotime($user->user_registered)),
+								$ip
+							);
 				}
 				break;
 
@@ -167,40 +182,54 @@ class ExtraUserDataPlugin {
 	
 		global $wpdb;
 		switch ($orderby) {
-			case 'comments':		$query->query_from = "FROM {$wpdb->users} LEFT OUTER JOIN {$wpdb->comments} c ON {$wpdb->users}.ID = c.user_id";
-									$query->query_orderby = "GROUP BY {$wpdb->users}.ID ORDER BY COUNT(*) {$order}";
-									break;
+			case 'comments':
+				$query->query_from = "FROM {$wpdb->users} LEFT OUTER JOIN {$wpdb->comments} c ON {$wpdb->users}.ID = c.user_id";
+				$query->query_orderby = "GROUP BY {$wpdb->users}.ID ORDER BY COUNT(*) {$order}";
+				break;
 
-			case 'custom_posts':	$query->query_from = "FROM {$wpdb->users} LEFT OUTER JOIN {$wpdb->posts} p ON {$wpdb->users}.ID = p.post_author";
-									$query->query_where = "WHERE p.post_type NOT IN ('revision', 'nav_menu_item') AND p.post_status IN ('publish', 'pending', 'draft')";
-									$query->query_orderby = "GROUP BY {$wpdb->users}.ID ORDER BY COUNT(*) {$order}";
-									break;
+			case 'custom_posts':
+				$query->query_from = "FROM {$wpdb->users} LEFT OUTER JOIN {$wpdb->posts} p ON {$wpdb->users}.ID = p.post_author";
+				$query->query_where = "WHERE p.post_type NOT IN ('revision', 'nav_menu_item') AND p.post_status IN ('publish', 'pending', 'draft')";
+				$query->query_orderby = "GROUP BY {$wpdb->users}.ID ORDER BY COUNT(*) {$order}";
+				break;
 
-			case 'last_login':		$query->query_from = "FROM {$wpdb->users} LEFT OUTER JOIN {$wpdb->usermeta} um ON {$wpdb->users}.ID = um.user_id AND um.meta_key = 'last_login'";
-									$query->query_orderby = "ORDER BY um.meta_value {$order}";
-									break;
+			case 'last_login':
+				$query->query_from = "FROM {$wpdb->users} LEFT OUTER JOIN {$wpdb->usermeta} um ON {$wpdb->users}.ID = um.user_id AND um.meta_key = 'last_login'";
+				$query->query_orderby = "ORDER BY um.meta_value {$order}";
+				break;
 
-			case 'registered_date':	$query->query_orderby = "ORDER BY user_registered {$order}";
-									break;
+			case 'registered_date':
+				$query->query_orderby = "ORDER BY user_registered {$order}";
+				break;
 
-			case 'total_logins':	$query->query_from = "FROM {$wpdb->users} LEFT OUTER JOIN {$wpdb->usermeta} um ON {$wpdb->users}.ID = um.user_id AND um.meta_key = 'login_count'";
-									$query->query_orderby = "ORDER BY um.meta_value {$order}";
-									break;
+			case 'total_logins':
+				$query->query_from = "FROM {$wpdb->users} LEFT OUTER JOIN {$wpdb->usermeta} um ON {$wpdb->users}.ID = um.user_id AND um.meta_key = 'login_count'";
+				$query->query_orderby = "ORDER BY CAST(um.meta_value AS UNSIGNED) {$order}";
+				break;
 		}
 		
-		return $query;	
+		return $query;
 	}
 
 
 	public function resize_users_columns() {
 		echo "<style type='text/css'>
-			table.users #comments { width:3rem; }
-			table.users #custom_posts { width:13rem; }
-			table.users #last_login { width:9rem; }
-			table.users #registered_date { width:9rem; }
-			table.users #total_logins { width:5rem; }
-			table.users #user_id { width:3rem; }
-
+			
+			/* only change column widths when on desktops */
+			@media (min-width: 1200px) {
+				table.users #comments			{ width:3vw; }
+				table.users #user_id			{ width:4vw; }
+				table.users #total_logins		{ width:5vw; }
+				table.users #custom_posts,
+				table.users #last_login,
+				table.users #registered_date	{ width:10vw; }
+			}
+		
+			table.users .ip-highlight {
+				font-size:smaller;
+				color:blue;
+			}
+			
 			/* comment styling */
 			table.users .column-comments .post-com-count-pending,
 			table.users .column-comments .post-com-count-spam,
@@ -235,19 +264,25 @@ class ExtraUserDataPlugin {
 	public function change_admin_page_title($html) {
 		$user_id = 0; if (isset($_REQUEST['user_id'])) $user_id = (int) $_REQUEST['user_id']; elseif (isset($_REQUEST['author'])) $user_id = (int) $_REQUEST['author'];
 		$user = get_userdata($user_id);
-
+		
 		if (false !== $user) {
-			$name = $user->first_name.' '.$user->last_name; if ('' == $name) $name = $user->user_login;
-
+			$name = trim($user->first_name.' '.$user->last_name); if ('' == $name) $name = $user->user_login;
+			
 			global $pagenow;
 			if ('edit-comments.php' == $pagenow) {
-				$new_title = '<h1>'.sprintf(__('Comments by %s'), $name).'</h1>';
-				$html = str_replace('<h1>'.__('Comments').'</h1>', $new_title, $html);
+				$html = preg_replace(
+					'/<h1( class="wp-heading-inline")?>\s*'.__('Comments').'\s*<\/h1>/',
+					'<h1 class="wp-heading-inline">'.sprintf(__('Comments by %s'), $name).'</h1>',
+					$html
+				);
 
 			} elseif ('edit.php' == $pagenow) {
 				global $post_type_object;
-				$new_title = '<h1>'.sprintf(__('%s by %s'), esc_html($post_type_object->labels->name), $name);
-				$html = str_replace('<h1>'.esc_html($post_type_object->labels->name), $new_title, $html);
+				$html = preg_replace(
+					'/<h1( class="wp-heading-inline")?>\s*'.esc_html($post_type_object->labels->name).'\s*<\/h1>/',
+					'<h1 class="wp-heading-inline">'.sprintf(__('%s by %s'), esc_html($post_type_object->labels->name), $name).'</h1>',
+					$html
+				);
 			}
 
 		}
@@ -260,8 +295,8 @@ class ExtraUserDataPlugin {
 
 
 
-	/******************************************************************************************************************************************************************/
-
+	/***********************************************************************************************************************************************/
+	
 	private function get_author_comment_counts($user_id = 0) {
 		$counts = array(
 			'1' => 0, '0' => 0, 'spam' => 0, 'trash' => 0,

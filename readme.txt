@@ -3,8 +3,8 @@ Contributors: keith_wp
 Donate Link: https://drakard.com/
 Tags: custom post types, ip, last login ip, log, login ip, more user columns, number comments, register ip, register, registration ip, signup, total comments, total logins, user columns, user data
 Requires at least: 3.8 or higher
-Tested up to: 5.4.2
-Stable tag: 0.12.3
+Tested up to: 5.5.1
+Stable tag: 0.13
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -40,6 +40,13 @@ Install the [Adjust Users Screen](https://wordpress.org/plugins/adjust-users-scr
 
 
 == Changelog ==
+
+= 0.13 =
+* Tested with WP 5.5.1
+* Added links for the Login/Registered IP addresses to a lookup service, saves cutting and pasting
+* Added CSS media query to only resize column widths on larger screens
+* Fixed the ordering of "Total Logins" to be numerically instead of alphabetically
+* Fixed page title when viewing assets belonging to a specific user
 
 = 0.12.3 =
 * Tested with WP 5.4.2
